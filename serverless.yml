@@ -1,0 +1,62 @@
+service:
+  name: "ignitecertificate"
+
+plugins:
+  - serverless-webpack
+  - serverless-offline
+  - serverless-dynamodb-local
+
+custom:
+  webpack:
+    webpackConfig: ./webpack.config.js
+    includeModules: true
+  dynamodb:
+    stages:
+      - dev
+      - local
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+  bucket: serverlesscertificatesignite
+
+provider:
+  name: aws
+  region: sa-east-1
+  runtime: nodejs14.x
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:*
+      Resource: "*"
+    - Effect: Allow
+      Action:
+        - s3:*
+      Resource: "*"
+
+functions:
+  createTodos:
+    handler: src/functions/createTodo.handle
+    events:
+      - http:
+          path: /createTodos/{id}
+          method: POST
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:PutItem
+        Resource: "arn:aws:dynamodb:${self.provider.region}:*:table/users_todos"
+  verifyCertificate:
+    handler: src/functions/verifyCertificate.handle
+    events:
+      - http:
+          path: /verifyCertificate/{id}
+          method: GET
+          cors: true
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: "arn:aws:dynamodb:${self.provider.region}:*:table/users_todos"
